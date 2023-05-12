@@ -16,10 +16,17 @@ from consts import TRODES_SAMPLING_RATE, allWellNames, CM_PER_FT, LFP_SAMPLING_R
 from UtilFunctions import LoadInfo, getWellPosCoordinates, Ripple, ImportOptions
 
 
-# A few design decisions I'm implementing now:
+# A few design decisions to note:
 #
-# - No more wellIdx. Whenever you refer to a well, use an int or str that is what I call the well
+# - Whenever you refer to a well, use an int or str that is what the name of the well
 #   i.e. well 2 always refers to the well in the bottom left corner
+#   layout:
+#   42 43 44 45 46 47
+#   34 35 36 37 38 39
+#   26 27 28 29 30 31
+#   18 19 20 21 22 23
+#   10 11 12 13 14 15
+#   02 03 04 05 06 07
 #
 # - Position is always normalized and corrected. During import, this correction is done according to the
 #   manually annotated well locations. These well locations never need to be accessed again, and should
@@ -223,7 +230,8 @@ class BTSession:
 
     hasActivelinkLog: bool = False
     activelinkLogFileName: str = ""
-    loggedDetections_ts: np.ndarray = np.array([])  # these are read directly from log file
+    loggedDetections_ts: np.ndarray = np.array(
+        [])  # these are read directly from log file
     loggedStats: List[Tuple[str, float, float]] = field(
         default_factory=list)  # contains all the stats listed in log file
     rpowmLog: float = 0.0  # The entry from above log list that was active during the session
@@ -411,12 +419,16 @@ class BTSession:
     btQuadrantExitTimes_ts: List[np.ndarray] = field(default_factory=list)
 
     probeQuadrants: np.ndarray = np.array([])
-    probeWellEntryTimesNinc_posIdx: List[np.ndarray] = field(default_factory=list)
-    probeWellExitTimesNinc_posIdx: List[np.ndarray] = field(default_factory=list)
+    probeWellEntryTimesNinc_posIdx: List[np.ndarray] = field(
+        default_factory=list)
+    probeWellExitTimesNinc_posIdx: List[np.ndarray] = field(
+        default_factory=list)
     probeWellEntryTimesNinc_ts: List[np.ndarray] = field(default_factory=list)
     probeWellExitTimesNinc_ts: List[np.ndarray] = field(default_factory=list)
-    probeQuadrantEntryTimes_posIdx: List[np.ndarray] = field(default_factory=list)
-    probeQuadrantExitTimes_posIdx: List[np.ndarray] = field(default_factory=list)
+    probeQuadrantEntryTimes_posIdx: List[np.ndarray] = field(
+        default_factory=list)
+    probeQuadrantExitTimes_posIdx: List[np.ndarray] = field(
+        default_factory=list)
     probeQuadrantEntryTimes_ts: List[np.ndarray] = field(default_factory=list)
     probeQuadrantExitTimes_ts: List[np.ndarray] = field(default_factory=list)
 
@@ -551,7 +563,8 @@ class BTSession:
         if assumeConvex is True, then ignores inclusionFlags, inclusionArray, and moveThreshold
         """
         if not assumeConvex:
-            raise NotImplementedError("Non-convex behavior periods not implemented yet")
+            raise NotImplementedError(
+                "Non-convex behavior periods not implemented yet")
             # inclusionFlags: Optional[str | Iterable[str]] = None
             # inclusionArray: Optional[np.ndarray] = None
             # moveThreshold: Optional[float] = None
@@ -585,13 +598,17 @@ class BTSession:
                     end = min(end, trialPosIdxs[endTrial - 1, 1])
 
         if behaviorPeriod.erode is not None:
-            startS = (ts[start] - ts[0]) / TRODES_SAMPLING_RATE + behaviorPeriod.erode
-            endS = (ts[end-1] - ts[0]) / TRODES_SAMPLING_RATE - behaviorPeriod.erode
+            startS = (ts[start] - ts[0]) / \
+                TRODES_SAMPLING_RATE + behaviorPeriod.erode
+            endS = (ts[end-1] - ts[0]) / \
+                TRODES_SAMPLING_RATE - behaviorPeriod.erode
             start, end = self.timeIntervalToPosIdx(ts, (startS, endS, "secs"))
 
         if behaviorPeriod.dilate is not None:
-            startS = (ts[start] - ts[0]) / TRODES_SAMPLING_RATE - behaviorPeriod.dilate
-            endS = (ts[end-1] - ts[0]) / TRODES_SAMPLING_RATE + behaviorPeriod.dilate
+            startS = (ts[start] - ts[0]) / \
+                TRODES_SAMPLING_RATE - behaviorPeriod.dilate
+            endS = (ts[end-1] - ts[0]) / \
+                TRODES_SAMPLING_RATE + behaviorPeriod.dilate
             start, end = self.timeIntervalToPosIdx(ts, (startS, endS, "secs"))
 
         return start, end
@@ -651,7 +668,8 @@ class BTSession:
                 if flag == "moving":
                     if behaviorPeriod.moveThreshold is not None:
                         vel = self.probeVelCmPerS if behaviorPeriod.probe else self.btVelCmPerS
-                        vel = np.append(vel, vel[-1])  # pad with last value to match length of ts
+                        # pad with last value to match length of ts
+                        vel = np.append(vel, vel[-1])
                         mv = vel > behaviorPeriod.moveThreshold
                     else:
                         mv = self.probeIsMv if behaviorPeriod.probe else self.btIsMv
@@ -659,7 +677,8 @@ class BTSession:
                 elif flag == "still":
                     if behaviorPeriod.moveThreshold is not None:
                         vel = self.probeVelCmPerS if behaviorPeriod.probe else self.btVelCmPerS
-                        vel = np.append(vel, vel[-1])  # pad with last value to match length of ts
+                        # pad with last value to match length of ts
+                        vel = np.append(vel, vel[-1])
                         mv = vel > behaviorPeriod.moveThreshold
                     else:
                         mv = self.probeIsMv if behaviorPeriod.probe else self.btIsMv
@@ -780,17 +799,10 @@ class BTSession:
         else:
             keepMv = np.ones_like(mv).astype(bool)
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(keepMv)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(keepMv)))
         keepTimeInt = np.zeros_like(keepMv).astype(bool)
         keepTimeInt[durIdx[0]:durIdx[1]] = True
-        # if timeInterval is None:
-        #     keepTimeInt = np.ones_like(keepMv)
-        # else:
-        #     assert xs.shape == ts.shape
-        #     keepTimeInt = np.zeros_like(keepMv).astype(bool)
-        #     durIdx = np.searchsorted(ts, np.array(
-        #         [ts[0] + timeInterval[0] * TRODES_SAMPLING_RATE, ts[0] + timeInterval[1] * TRODES_SAMPLING_RATE]))
-        #     keepTimeInt[durIdx[0]:durIdx[1]] = True
 
         keepFlag = keepTimeInt & keepMv
 
@@ -812,10 +824,9 @@ class BTSession:
             at0 = at0[0:-1]
         assert len(at1) == len(at0)
 
-        # print(f"{ ht0.shape = }")
-
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", r"invalid value encountered in cast")
+            warnings.filterwarnings(
+                "ignore", r"invalid value encountered in cast")
             ret = np.empty((len(ht1)+len(at1), 2)).astype(int)
         if len(ht1) > 0:
             ret[::2, :] = np.vstack((ht0, ht1)).T
@@ -904,7 +915,8 @@ class BTSession:
             for rt in removeTimes:
                 whichPassFlags = (ents < rt) & (exts > rt)
                 if np.count_nonzero(whichPassFlags) != 0:
-                    raise Exception("Couldn't find correct reward time to exclude")
+                    raise Exception(
+                        "Couldn't find correct reward time to exclude")
 
                 todel = np.argmax(whichPassFlags)
                 ents = np.delete(ents, todel)
@@ -924,13 +936,9 @@ class BTSession:
             else:
                 mint = ts[timeInterval_posIdx[0]]
                 maxt = ts[timeInterval_posIdx[1]]
-            # mint = ts[0] + timeInterval[0] * TRODES_SAMPLING_RATE
-            # maxt = ts[0] + timeInterval[1] * TRODES_SAMPLING_RATE
-            # if returnIdxs:
-                # mint = np.searchsorted(ts, mint)
-                # maxt = np.searchsorted(ts, maxt)
 
-            keepflag = np.logical_and(np.array(ents) < maxt, np.array(exts) > mint)
+            keepflag = np.logical_and(
+                np.array(ents) < maxt, np.array(exts) > mint)
             ents = ents[keepflag]
             exts = exts[keepflag]
             if len(ents) > 0:
@@ -943,7 +951,8 @@ class BTSession:
                     elif includeEdgeOverlap[0] == "full":
                         pass
                     else:
-                        raise ValueError("Edge overlaps but invalid overlap rule given")
+                        raise ValueError(
+                            "Edge overlaps but invalid overlap rule given")
             if len(ents) > 0:
                 if exts[-1] > maxt:
                     if includeEdgeOverlap[1] == "clip":
@@ -954,7 +963,8 @@ class BTSession:
                     elif includeEdgeOverlap[1] == "full":
                         pass
                     else:
-                        raise ValueError("Edge overlaps but invalid overlap rule given")
+                        raise ValueError(
+                            "Edge overlaps but invalid overlap rule given")
 
         return ents, exts
 
@@ -996,7 +1006,8 @@ class BTSession:
         """
         return units: trodes timestamps
         """
-        ents, exts = self.entryExitTimes(inProbe, wellName, returnIdxs=False, **kwargs)
+        ents, exts = self.entryExitTimes(
+            inProbe, wellName, returnIdxs=False, **kwargs)
         return exts - ents
 
     def numWellEntries(self, inProbe, wellName, **kwargs):
@@ -1028,7 +1039,8 @@ class BTSession:
             lbls = self.btBoutLabel
             ts = self.btPos_ts
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(lbls)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(lbls)))
         lbls = lbls[durIdx[0]:durIdx[1]]
         # if timeInterval is not None:
         #     imin = np.searchsorted(ts, ts[0] + timeInterval[0] * TRODES_SAMPLING_RATE)
@@ -1038,7 +1050,8 @@ class BTSession:
         return len(set(lbls) - set([0]))
 
     def numBoutsWhereWellWasVisited(self, inProbe, wellName, **kwargs):
-        ents, exts = self.entryExitTimes(inProbe, wellName, **kwargs, returnIdxs=True)
+        ents, exts = self.entryExitTimes(
+            inProbe, wellName, **kwargs, returnIdxs=True)
 
         if inProbe:
             lbls = self.probeBoutLabel
@@ -1068,7 +1081,8 @@ class BTSession:
                 timeInterval = [boutStarts[boutsInterval[0]],
                                 boutEnds[boutsInterval[1] - 1], "posIdx"]
             else:
-                timeInterval = [boutStarts[boutsInterval[0]], boutEnds[len(boutEnds) - 1], "posIdx"]
+                timeInterval = [boutStarts[boutsInterval[0]],
+                                boutEnds[len(boutEnds) - 1], "posIdx"]
 
         denom = self.numBouts(inProbe, timeInterval=timeInterval)
         if denom == 0:
@@ -1084,7 +1098,8 @@ class BTSession:
             cats = self.btBoutCategory
             ts = self.btPos_ts
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(ts)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(ts)))
         # if timeInterval is None:
         #     imin = 0
         #     imax = len(ts)
@@ -1115,7 +1130,8 @@ class BTSession:
             ts = self.btPos_ts
             mv = self.btIsMv
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(mv)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(mv)))
         inTime = np.zeros_like(mv).astype(bool)
         inTime[durIdx[0]:durIdx[1]] = True
         # if timeInterval is None:
@@ -1141,7 +1157,8 @@ class BTSession:
                                               | Tuple[float, float, str]] = None,
                        wellName=None, emptyVal=np.nan):
         if (timeInterval is None) == (wellName is None):
-            raise Exception("Gimme a time interval or a well name plz (but not both)")
+            raise Exception(
+                "Gimme a time interval or a well name plz (but not both)")
 
         if inProbe:
             xs = self.probePosXs
@@ -1169,7 +1186,8 @@ class BTSession:
             dx = np.diff(xs[durIdx[0]:durIdx[1]])
             dy = np.diff(ys[durIdx[0]:durIdx[1]])
 
-        displacement = np.sqrt(displacementX * displacementX + displacementY * displacementY)
+        displacement = np.sqrt(
+            displacementX * displacementX + displacementY * displacementY)
         distance = np.sum(np.sqrt(np.power(dx, 2) + np.power(dy, 2)))
 
         # if distance / displacement < 1:
@@ -1216,7 +1234,8 @@ class BTSession:
         else:
             keepMv = np.ones_like(mv).astype(bool)
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(mv)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(mv)))
         inTime = np.zeros_like(mv).astype(bool)
         inTime[durIdx[0]:durIdx[1]] = True
         # if timeInterval is None:
@@ -1227,7 +1246,8 @@ class BTSession:
         #     inTime = np.zeros_like(mv).astype(bool)
         #     inTime[imin:imax] = True
 
-        distToWell = np.sqrt(np.power(wx - xs, 2) + np.power(wy - ys, 2)) * CM_PER_FT
+        distToWell = np.sqrt(np.power(wx - xs, 2) +
+                             np.power(wy - ys, 2)) * CM_PER_FT
 
         inRange = distToWell < radius
         keepFlag = inRange & inTime & keepMv
@@ -1261,7 +1281,8 @@ class BTSession:
         else:
             t1 = 0
 
-        ents = self.entryExitTimes(inProbe, wellName, returnIdxs=(returnUnits == "posIdx"))[0]
+        ents = self.entryExitTimes(
+            inProbe, wellName, returnIdxs=(returnUnits == "posIdx"))[0]
 
         if len(ents) == 0:
             return emptyVal
@@ -1308,19 +1329,23 @@ class BTSession:
         neighborExitIdxs = np.array([])
         neighborEntryIdxs = np.array([])
         for nw in neighborWells:
-            ents, exts = self.entryExitTimes(inProbe, nw, returnIdxs=True, **kwargs)
+            ents, exts = self.entryExitTimes(
+                inProbe, nw, returnIdxs=True, **kwargs)
             neighborEntryIdxs = np.concatenate((neighborEntryIdxs, ents))
             neighborExitIdxs = np.concatenate((neighborExitIdxs, exts))
 
         if len(neighborExitIdxs) == 0:
             return emptyVal
 
-        keepEntryIdx = np.array([v not in neighborExitIdxs for v in neighborEntryIdxs])
-        keepExitIdx = np.array([v not in neighborEntryIdxs for v in neighborExitIdxs])
+        keepEntryIdx = np.array(
+            [v not in neighborExitIdxs for v in neighborEntryIdxs])
+        keepExitIdx = np.array(
+            [v not in neighborEntryIdxs for v in neighborExitIdxs])
         neighborEntryIdxs = sorted(neighborEntryIdxs[keepEntryIdx])
         neighborExitIdxs = sorted(neighborExitIdxs[keepExitIdx])
 
-        wellEntryIdxs = self.entryExitTimes(inProbe, wellName, returnIdxs=True, **kwargs)[0]
+        wellEntryIdxs = self.entryExitTimes(
+            inProbe, wellName, returnIdxs=True, **kwargs)[0]
         enteredHome = [any([wei <= v2 and wei >= v1 for wei in wellEntryIdxs])
                        for v1, v2 in zip(neighborEntryIdxs, neighborExitIdxs)]
 
@@ -1340,7 +1365,8 @@ class BTSession:
 
         wx, wy = getWellPosCoordinates(wellName)
 
-        wellDist2 = np.power(x - np.array(wx), 2) + np.power(y - np.array(wy), 2)
+        wellDist2 = np.power(x - np.array(wx), 2) + \
+            np.power(y - np.array(wy), 2)
         inRange = wellDist2 <= distance * distance
         borders = np.diff(inRange.astype(int), prepend=0, append=0)
 
@@ -1411,7 +1437,8 @@ class BTSession:
             distanceFactor = np.exp(-0.3 * magw)
         else:
             distanceFactor = 1 - np.exp(-0.3 * magw)
-        allVals = allVals * distanceFactor * distanceWeight + allVals * (1 - distanceWeight)
+        allVals = allVals * distanceFactor * \
+            distanceWeight + allVals * (1 - distanceWeight)
 
         if not (-1 <= velocityWeight <= 1):
             raise ValueError("velocityWeight must be between -1 and 1")
@@ -1420,7 +1447,8 @@ class BTSession:
             velocityFactor = np.exp(-1 * magp)
         else:
             velocityFactor = 1 - np.exp(-1 * magp)
-        allVals = allVals * velocityFactor * velocityWeight + allVals * (1 - velocityWeight)
+        allVals = allVals * velocityFactor * \
+            velocityWeight + allVals * (1 - velocityWeight)
 
         if onlyPositive:
             allVals = np.clip(allVals, 0, None)
@@ -1460,7 +1488,8 @@ class BTSession:
         else:
             keepMv = np.ones_like(mv).astype(bool)
 
-        durIdx = self.timeIntervalToPosIdx(ts, timeInterval, noneVal=(0, len(keepMv)))
+        durIdx = self.timeIntervalToPosIdx(
+            ts, timeInterval, noneVal=(0, len(keepMv)))
         keepTimeInt = np.zeros_like(keepMv).astype(bool)
         keepTimeInt[durIdx[0]:durIdx[1]] = True
 
@@ -1545,7 +1574,8 @@ class BTSession:
 
         # Can be all nans, so ignore warnings about all nan slices
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", r"All-NaN (slice|axis) encountered")
+            warnings.filterwarnings(
+                "ignore", r"All-NaN (slice|axis) encountered")
             warnings.filterwarnings("ignore", r"Mean of empty slice")
             if outlierPctile is not None:
                 ret[ret > np.nanpercentile(ret, outlierPctile)
@@ -1606,7 +1636,8 @@ class BTSession:
         # print(f"{ goodPkIdxs = }")
         # print(f"{ goodPkHeights = }")
 
-        passDenoiseThreshold2 = passRadius * passRadius * passDenoiseFactor * passDenoiseFactor
+        passDenoiseThreshold2 = passRadius * passRadius * \
+            passDenoiseFactor * passDenoiseFactor
         # print(f"{ passDenoiseThreshold2 = }")
         for i in range(1, len(pks)):
             sigMax = np.max(dist2[goodPkIdxs[-1]:pks[i]])
@@ -1641,8 +1672,10 @@ class BTSession:
                 if np.isnan(dist2[i]):
                     todel.append(pi)
                     continue
-            goodPkIdxs = [i for j, i in enumerate(goodPkIdxs) if j not in todel]
-            goodPkHeights = [i for j, i in enumerate(goodPkHeights) if j not in todel]
+            goodPkIdxs = [i for j, i in enumerate(
+                goodPkIdxs) if j not in todel]
+            goodPkHeights = [i for j, i in enumerate(
+                goodPkHeights) if j not in todel]
 
         if showPlot:
             plt.plot(xs, ys)
@@ -1652,7 +1685,8 @@ class BTSession:
             ax = plt.gca()
             ax.add_patch(plt.Circle(pos, passRadius, color="r", fill=False))
             ax.add_patch(plt.Circle(pos, visitRadius, color="g", fill=False))
-            ax.add_patch(plt.Circle(pos, passRadius * passDenoiseFactor, color="b", fill=False))
+            ax.add_patch(plt.Circle(pos, passRadius *
+                         passDenoiseFactor, color="b", fill=False))
             plt.show()
 
         numVisits = np.count_nonzero(np.array(goodPkHeights) < visitRadius)
@@ -1692,7 +1726,8 @@ class BTSession:
 
     def avgDwellTimeAtPosition(self, behaviorPeriod: BehaviorPeriod, pos: Tuple[float, float],
                                radius: float = 0.5, denoiseFactor: float = 1.25) -> float:
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         ts, xs, ys = self.posDuringBehaviorPeriod(bp)
         dx = xs - pos[0]
         dy = ys - pos[1]
@@ -1766,7 +1801,8 @@ class BTSession:
 
     def numVisitsToPosition(self, behaviorPeriod: BehaviorPeriod, pos: Tuple[float, float],
                             radius: float = 0.5, denoiseFactor: float = 1.25) -> float:
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         ts, xs, ys = self.posDuringBehaviorPeriod(bp)
         dx = xs - pos[0]
         dy = ys - pos[1]
@@ -1794,7 +1830,8 @@ class BTSession:
 
     def latencyToPosition(self, behaviorPeriod: BehaviorPeriod, pos: Tuple[float, float], radius: float = 0.5,
                           emptyVal=np.nan) -> float:
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         ts, xs, ys = self.posDuringBehaviorPeriod(bp)
         dx = xs - pos[0]
         dy = ys - pos[1]
@@ -1820,7 +1857,8 @@ class BTSession:
         :param startAtPosVal: The value to return if the animal starts at the position.
 
         """
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         _, xs, ys = self.posDuringBehaviorPeriod(bp)
         dx = xs - pos[0]
         dy = ys - pos[1]
@@ -1871,7 +1909,8 @@ class BTSession:
         :param startAtPosVal: The value to return if the animal starts at the position.
 
         """
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         _, xs, ys = self.posDuringBehaviorPeriod(bp)
         dx = xs - pos[0]
         dy = ys - pos[1]
@@ -1973,7 +2012,8 @@ class BTSession:
         #     # setup timer to time different parts of the function
         #     startTime = time.perf_counter_ns()
 
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         # if timeFunction:
         #     replaceTime = time.perf_counter_ns()
 
@@ -2109,7 +2149,8 @@ class BTSession:
                 plt.plot(xs, ys, color="k", alpha=0.5)
                 plt.plot(xs[startPoint-margin:endPoint+margin],
                          ys[startPoint-margin:endPoint+margin], color="r")
-                plt.plot(xs[startPoint:endPoint], ys[startPoint:endPoint], color="k", zorder=10)
+                plt.plot(xs[startPoint:endPoint],
+                         ys[startPoint:endPoint], color="k", zorder=10)
                 plt.title(f"calc for excursion {ei}")
                 plt.xlim(-0.5, 6.5)
                 plt.ylim(-0.5, 6.5)
@@ -2134,8 +2175,10 @@ class BTSession:
 
         if reciprocal:
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", r"invalid value encountered in true_divide")
-                warnings.filterwarnings("ignore", r"divide by zero encountered in divide")
+                warnings.filterwarnings(
+                    "ignore", r"invalid value encountered in true_divide")
+                warnings.filterwarnings(
+                    "ignore", r"divide by zero encountered in divide")
                 excursionPathLengths = 1 / excursionPathLengths
                 excursionPathLengths[np.isinf(excursionPathLengths)] = emptyVal
 
@@ -2186,7 +2229,8 @@ class BTSession:
         if not behaviorPeriod.probe and len(self.btExcursionStart_posIdx) == 0:
             return np.nan
 
-        bp = replace(behaviorPeriod, inclusionFlags=None, inclusionArray=None, moveThreshold=None)
+        bp = replace(behaviorPeriod, inclusionFlags=None,
+                     inclusionArray=None, moveThreshold=None)
         _, xs, ys = self.posDuringBehaviorPeriod(bp)
 
         starts = self.probeExcursionStart_posIdx if behaviorPeriod.probe else self.btExcursionStart_posIdx

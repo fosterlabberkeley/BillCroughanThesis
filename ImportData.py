@@ -1,3 +1,8 @@
+# NOTE: This file is kept here for reference to see how quantities for BTSession are calculated.
+# It requires other files that are in Bill's full analysis repo but not this Thesis repo, so that
+# this repo can remain small and just the most relevant files. If you're in Foster Lab, check out
+# the other repo for the required files. If you're not, contact someone in the lab.
+
 from BTData import BTData
 from BTSession import BTSession
 import numpy as np
@@ -536,7 +541,8 @@ def correctFishEye(wellCoordsMap: Dict[str, Tuple[int, int]], xs: ArrayLike, ys:
 
         return p1 + (p1 - p2)
 
-    cameraWellLocations = np.array([getWellCoords(x, y) for x, y in zip(xpts, ypts)])
+    cameraWellLocations = np.array(
+        [getWellCoords(x, y) for x, y in zip(xpts, ypts)])
     pathCoords = np.vstack((np.array(xs), np.array(ys))).T
     xres = griddata(cameraWellLocations, xpts, pathCoords, method="cubic")
     yres = griddata(cameraWellLocations, ypts, pathCoords, method="cubic")
@@ -549,7 +555,8 @@ def integrateCorrectionFiles(ts: ArrayLike, xs: ArrayLike, ys: ArrayLike, correc
     validTpts = ts[~np.isnan(xs)]
     notnandiff = np.diff(validTpts)
     MIN_CORRECTION_TS = minCorrectionSecs * TRODES_SAMPLING_RATE
-    needsCorrection = np.argwhere((notnandiff >= MIN_CORRECTION_TS)).reshape(-1)
+    needsCorrection = np.argwhere(
+        (notnandiff >= MIN_CORRECTION_TS)).reshape(-1)
     correctionRegions = []
     correctedFlag = []
     # print("\tLarge gaps that are being interped:")
@@ -573,7 +580,8 @@ def integrateCorrectionFiles(ts: ArrayLike, xs: ArrayLike, ys: ArrayLike, correc
         # print("\t" + "\t".join([str(s) for s in entry]))
 
     if correctionDirectory is None:
-        response = input("No corrections provided, interp all these gaps anyway (y/N)?")
+        response = input(
+            "No corrections provided, interp all these gaps anyway (y/N)?")
         if response != "y":
             exit()
         return
@@ -594,7 +602,8 @@ def integrateCorrectionFiles(ts: ArrayLike, xs: ArrayLike, ys: ArrayLike, correc
 
         # Seems like it includes all the video timestamps, but just extends wherever tracking happened for
         # some reason
-        cd = np.abs(np.diff(cx, prepend=cx[0])) + np.abs(np.diff(cy, prepend=cy[0]))
+        cd = np.abs(np.diff(cx, prepend=cx[0])) + \
+            np.abs(np.diff(cy, prepend=cy[0]))
         nzcd = np.nonzero(cd)[0]
         ci1 = nzcd[0]
         ci2 = nzcd[-1]
@@ -639,7 +648,8 @@ def integrateCorrectionFiles(ts: ArrayLike, xs: ArrayLike, ys: ArrayLike, correc
                 # quickPosPlot(ts, xs, ys, "correction region integrated",
                 # irange=(max(0, tpi1 - MARGIN), min(len(ts)-1, tpi2 + MARGIN)))
 
-    print(f"\tCorrected {numCorrectionsIntegrated} regions with corrections files")
+    print(
+        f"\tCorrected {numCorrectionsIntegrated} regions with corrections files")
     # print("\tRemaining regions that are uncorrected:")
     lastEnd = None
     lastStart = None
@@ -701,7 +711,8 @@ def processPosData(x: ArrayLike, y: ArrayLike, t: ArrayLike, wellCoordsMap: Dict
     yPos = np.array(y).astype(float)
 
     # Remove out of bounds and excluded position points
-    cleanupPos(tpts, xPos, yPos, xLim=xLim, yLim=yLim, excludeBoxes=excludeBoxes)
+    cleanupPos(tpts, xPos, yPos, xLim=xLim,
+               yLim=yLim, excludeBoxes=excludeBoxes)
 
     # Run fisheye correction
     xPos, yPos = correctFishEye(wellCoordsMap, xPos, yPos)
@@ -711,7 +722,8 @@ def processPosData(x: ArrayLike, y: ArrayLike, t: ArrayLike, wellCoordsMap: Dict
                minCleanTimeFrames=minCleanTimeFrames)
 
     # Now check for large gaps that were removed and fill in with correction files
-    integrateCorrectionFiles(tpts, xPos, yPos, correctionDirectory, wellCoordsMap)
+    integrateCorrectionFiles(
+        tpts, xPos, yPos, correctionDirectory, wellCoordsMap)
 
     # Now interp all remaining unknown positions
     xPos, yPos = interpNanPositions(tpts, xPos, yPos)
@@ -839,7 +851,8 @@ def loadPositionData(sesh: BTSession) -> None:
             xs, ys, ts, wellCoordsMap = positionData
             positionDataMetadata = {}
             sesh.hasPositionData = True
-            raise Exception("Unimplemented new position standards for DLC (scale, fisheye, etc)")
+            raise Exception(
+                "Unimplemented new position standards for DLC (scale, fisheye, etc)")
     else:
         sesh.positionFromDeepLabCut = False
 
@@ -954,7 +967,8 @@ def loadPositionData(sesh: BTSession) -> None:
                 # print("\tjustlights file says trodes light timestamps {}, {} (/{})".format(
                 #     sesh.trodesLightOffTime, sesh.trodesLightOnTime, len(ts)))
             else:
-                print(f"\tdoing the lights with file {sesh.fileStartString + '.1.h264'}")
+                print(
+                    f"\tdoing the lights with file {sesh.fileStartString + '.1.h264'}")
                 sesh.trodesLightOffTime, sesh.trodesLightOnTime = getTrodesLightTimes(
                     sesh.fileStartString + '.1.h264', showVideo=False,
                     ignoreFirstSeconds=sesh.trodesLightsIgnoreSeconds)
@@ -970,8 +984,10 @@ def loadPositionData(sesh: BTSession) -> None:
             possibleRoots.append(harold)
 
         possibleSubDirs = [
-            os.path.join("Data", "labvideos", "labvideos", "trimmed", sesh.animalName),
-            os.path.join("Backup", "labVideos", "labvideos", "trimmed", sesh.animalName),
+            os.path.join("Data", "labvideos", "labvideos",
+                         "trimmed", sesh.animalName),
+            os.path.join("Backup", "labVideos", "labvideos",
+                         "trimmed", sesh.animalName),
             "videos",
             "lab_videos",
             sesh.animalName,
@@ -1075,7 +1091,8 @@ def loadPositionData(sesh: BTSession) -> None:
         rewardClipsFile = sesh.fileStartString + '.1.rewardclips'
     if not os.path.exists(rewardClipsFile):
         if sesh.numHomeFound > 0:
-            print("!!!!!!\tWell find times not marked for session {}\t!!!!!!!".format(sesh.name))
+            print(
+                "!!!!!!\tWell find times not marked for session {}\t!!!!!!!".format(sesh.name))
             sesh.hasRewardFindTimes = False
         else:
             sesh.hasRewardFindTimes = True
@@ -1088,13 +1105,15 @@ def loadPositionData(sesh: BTSession) -> None:
         sesh.awayRewardExit_ts = wellVisitTimes[1::2, 1]
 
     if sesh.hasActivelinkLog:
-        centerLoggedDetection_ts = (sesh.loggedDetections_ts[0] + sesh.loggedDetections_ts[-1]) / 2
+        centerLoggedDetection_ts = (
+            sesh.loggedDetections_ts[0] + sesh.loggedDetections_ts[-1]) / 2
         if sesh.probePerformed:
             lastTime = sesh.probePos_ts[-1]
         else:
             lastTime = sesh.btPos_ts[-1]
         if centerLoggedDetection_ts < sesh.btPos_ts[0] or centerLoggedDetection_ts > lastTime:
-            raise Exception("Looks like we might have the wrong activelink log file.")
+            raise Exception(
+                "Looks like we might have the wrong activelink log file.")
 
 
 def loadLFPData(sesh: BTSession) -> Tuple[ArrayLike, Optional[ArrayLike]]:
@@ -1197,8 +1216,10 @@ def runLFPAnalyses(sesh: BTSession, lfpData: ArrayLike, baselineLfpData: Optiona
     sesh.btLFPBumps_lfpIdx = btLFPBumps_lfpIdx
 
     if sesh.hasActivelinkLog:
-        sesh.loggedDetections_lfpIdx = np.searchsorted(lfp_ts, sesh.loggedDetections_ts)
-        assert len(sesh.loggedDetections_lfpIdx) == len(sesh.loggedDetections_ts)
+        sesh.loggedDetections_lfpIdx = np.searchsorted(
+            lfp_ts, sesh.loggedDetections_ts)
+        assert len(sesh.loggedDetections_lfpIdx) == len(
+            sesh.loggedDetections_ts)
         sesh.btLoggedDetections_ts = sesh.loggedDetections_ts[(
             sesh.loggedDetections_ts > sesh.btPos_ts[0]) & (sesh.loggedDetections_ts < sesh.btPos_ts[-1])]
         sesh.btLoggedDetections_lfpIdx = sesh.loggedDetections_lfpIdx[(
@@ -1206,12 +1227,15 @@ def runLFPAnalyses(sesh: BTSession, lfpData: ArrayLike, baselineLfpData: Optiona
         sesh.btLoggedDetections_lfpIdx -= btLfpStart_lfpIdx
         # print(f"{ len(sesh.btLoggedDetections_lfpIdx)  = }")
         # print(f"{ len(sesh.btLoggedDetections_ts) = }")
-        assert len(sesh.btLoggedDetections_lfpIdx) == len(sesh.btLoggedDetections_ts)
+        assert len(sesh.btLoggedDetections_lfpIdx) == len(
+            sesh.btLoggedDetections_ts)
 
     if sesh.probePerformed:
         itiMargin = sesh.importOptions.ITI_MARGIN
-        sesh.itiLfpStart_ts = int(sesh.btPos_ts[-1] + itiMargin * TRODES_SAMPLING_RATE)
-        sesh.itiLfpEnd_ts = int(sesh.probePos_ts[0] - itiMargin * TRODES_SAMPLING_RATE)
+        sesh.itiLfpStart_ts = int(
+            sesh.btPos_ts[-1] + itiMargin * TRODES_SAMPLING_RATE)
+        sesh.itiLfpEnd_ts = int(
+            sesh.probePos_ts[0] - itiMargin * TRODES_SAMPLING_RATE)
         itiLfpStart_lfpIdx = np.searchsorted(lfp_ts, sesh.itiLfpStart_ts)
         itiLfpEnd_lfpIdx = np.searchsorted(lfp_ts, sesh.itiLfpEnd_ts)
         sesh.itiLfpStart_lfpIdx = itiLfpStart_lfpIdx
@@ -1223,13 +1247,15 @@ def runLFPAnalyses(sesh: BTSession, lfpData: ArrayLike, baselineLfpData: Optiona
         sesh.itiLFPBumps_lfpIdx = itiLFPBumps_lfpIdx
 
         if sesh.hasActivelinkLog:
-            sesh.loggedDetections_lfpIdx = np.searchsorted(lfp_ts, sesh.loggedDetections_ts)
+            sesh.loggedDetections_lfpIdx = np.searchsorted(
+                lfp_ts, sesh.loggedDetections_ts)
             sesh.itiLoggedDetections_ts = sesh.loggedDetections_ts[(
                 sesh.loggedDetections_ts > sesh.itiLfpStart_ts) & (sesh.loggedDetections_ts < sesh.itiLfpEnd_ts)]
             sesh.itiLoggedDetections_lfpIdx = sesh.loggedDetections_lfpIdx[(
                 sesh.loggedDetections_lfpIdx > itiLfpStart_lfpIdx) & (sesh.loggedDetections_lfpIdx < itiLfpEnd_lfpIdx)]
             sesh.itiLoggedDetections_lfpIdx -= sesh.itiLfpStart_lfpIdx
-            assert len(sesh.itiLoggedDetections_lfpIdx) == len(sesh.itiLoggedDetections_ts)
+            assert len(sesh.itiLoggedDetections_lfpIdx) == len(
+                sesh.itiLoggedDetections_ts)
 
         probeLfpStart_lfpIdx = np.searchsorted(lfp_ts, sesh.probePos_ts[0])
         probeLfpEnd_lfpIdx = np.searchsorted(lfp_ts, sesh.probePos_ts[-1])
@@ -1243,13 +1269,15 @@ def runLFPAnalyses(sesh: BTSession, lfpData: ArrayLike, baselineLfpData: Optiona
 
         if sesh.hasActivelinkLog:
             assert probeLfpEnd_lfpIdx < len(lfp_ts)
-            sesh.loggedDetections_lfpIdx = np.searchsorted(lfp_ts, sesh.loggedDetections_ts)
+            sesh.loggedDetections_lfpIdx = np.searchsorted(
+                lfp_ts, sesh.loggedDetections_ts)
             sesh.probeLoggedDetections_ts = sesh.loggedDetections_ts[(
                 sesh.loggedDetections_ts > sesh.probePos_ts[0]) & (sesh.loggedDetections_ts < sesh.probePos_ts[-1])]
             sesh.probeLoggedDetections_lfpIdx = sesh.loggedDetections_lfpIdx[(
                 sesh.loggedDetections_lfpIdx > probeLfpStart_lfpIdx) & (sesh.loggedDetections_lfpIdx < probeLfpEnd_lfpIdx)]
             sesh.probeLoggedDetections_lfpIdx -= sesh.probeLfpStart_lfpIdx
-            assert len(sesh.probeLoggedDetections_lfpIdx) == len(sesh.probeLoggedDetections_ts)
+            assert len(sesh.probeLoggedDetections_lfpIdx) == len(
+                sesh.probeLoggedDetections_ts)
 
     peaks = signal.find_peaks(np.abs(
         np.diff(lfpV, prepend=lfpV[0])), height=sesh.importOptions.DEFLECTION_THRESHOLD_LO, distance=sesh.importOptions.MIN_ARTIFACT_DISTANCE)
@@ -1372,13 +1400,16 @@ def runSanityChecks(sesh: BTSession, lfpData: ArrayLike, baselineLfpData: Option
         else:
             totalTime = (lfp_ts[-1] - lfp_ts[0]) / TRODES_SAMPLING_RATE
             totalGapTime = np.sum(dt[isBigGap])
-            print(f"\t{totalGapTime}/{totalTime} ({int(100*totalGapTime/totalTime)}%) of lfp signal missing")
+            print(
+                f"\t{totalGapTime}/{totalTime} ({int(100*totalGapTime/totalTime)}%) of lfp signal missing")
 
             maxGapIdx = np.argmax(dt)
             maxGapLen = dt[maxGapIdx] / TRODES_SAMPLING_RATE
             maxGapT1 = (lfp_ts[maxGapIdx] - lfp_ts[0]) / TRODES_SAMPLING_RATE
-            maxGapT2 = (lfp_ts[maxGapIdx + 1] - lfp_ts[0]) / TRODES_SAMPLING_RATE
-            print(f"\tBiggest gap: {maxGapLen}s long ({maxGapT1} - {maxGapT2})")
+            maxGapT2 = (lfp_ts[maxGapIdx + 1] - lfp_ts[0]) / \
+                TRODES_SAMPLING_RATE
+            print(
+                f"\tBiggest gap: {maxGapLen}s long ({maxGapT1} - {maxGapT2})")
 
     # dummySesh = BTSession()
     # dummyDict = dummySesh.__dict__
@@ -1410,7 +1441,8 @@ def posCalcVelocity(sesh: BTSession) -> None:
         0] / float(TRODES_SAMPLING_RATE)
     BOUT_VEL_SM_SIGMA = sesh.importOptions.MOVE_THRESH_SM_SIGMA_SECS / POS_FRAME_RATE
     # print(f"{BOUT_VEL_SM_SIGMA =}")
-    sesh.btVelCmPerS = gaussian_filter1d(sesh.btVelCmPerSRaw, BOUT_VEL_SM_SIGMA)
+    sesh.btVelCmPerS = gaussian_filter1d(
+        sesh.btVelCmPerSRaw, BOUT_VEL_SM_SIGMA)
     btIsMv = sesh.btVelCmPerS > sesh.importOptions.VEL_THRESH
     if len(btIsMv) > 0:
         btIsMv = np.append(btIsMv, np.array(btIsMv[-1]))
@@ -1423,7 +1455,8 @@ def posCalcVelocity(sesh: BTSession) -> None:
         sesh.probeVelCmPerSRaw = np.divide(probeVel, np.diff(sesh.probePos_ts) /
                                            TRODES_SAMPLING_RATE) * CM_PER_FT
         np.seterr(**oldSettings)
-        sesh.probeVelCmPerS = gaussian_filter1d(sesh.probeVelCmPerSRaw, BOUT_VEL_SM_SIGMA)
+        sesh.probeVelCmPerS = gaussian_filter1d(
+            sesh.probeVelCmPerSRaw, BOUT_VEL_SM_SIGMA)
         probeIsMv = sesh.probeVelCmPerS > sesh.importOptions.VEL_THRESH
         if len(probeIsMv) > 0:
             probeIsMv = np.append(probeIsMv, np.array(probeIsMv[-1]))
@@ -1447,7 +1480,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
     # ninc stands for neighbors included
     sesh.btWellEntryTimesNinc_posIdx, sesh.btWellExitTimesNinc_posIdx, \
         sesh.btWellEntryTimesNinc_ts, sesh.btWellExitTimesNinc_ts = \
-        getWellEntryAndExitTimes(sesh.btNearestWells, sesh.btPos_ts, includeNeighbors=True)
+        getWellEntryAndExitTimes(
+            sesh.btNearestWells, sesh.btPos_ts, includeNeighbors=True)
 
     sesh.btQuadrantEntryTimes_posIdx, sesh.btQuadrantExitTimes_posIdx, \
         sesh.btQuadrantEntryTimes_ts, sesh.btQuadrantExitTimes_ts = \
@@ -1455,11 +1489,13 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
             sesh.btQuadrants, sesh.btPos_ts, quads=True)
 
     for i in allWellNames:
-        assert len(sesh.btWellEntryTimes_ts[i]) == len(sesh.btWellExitTimes_ts[i])
+        assert len(sesh.btWellEntryTimes_ts[i]) == len(
+            sesh.btWellExitTimes_ts[i])
 
     # same for during probe
     if sesh.probePerformed:
-        sesh.probeNearestWells = getNearestWell(sesh.probePosXs, sesh.probePosYs)
+        sesh.probeNearestWells = getNearestWell(
+            sesh.probePosXs, sesh.probePosYs)
 
         sesh.probeWellEntryTimes_posIdx, sesh.probeWellExitTimes_posIdx, \
             sesh.probeWellEntryTimes_ts, sesh.probeWellExitTimes_ts = getWellEntryAndExitTimes(
@@ -1476,7 +1512,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
                 sesh.probeQuadrants, sesh.probePos_ts, quads=True)
 
         for i in allWellNames:
-            assert len(sesh.probeWellEntryTimes_ts[i]) == len(sesh.probeWellExitTimes_ts[i])
+            assert len(sesh.probeWellEntryTimes_ts[i]) == len(
+                sesh.probeWellExitTimes_ts[i])
 
     homeMiddle_ts = (sesh.homeRewardEnter_ts + sesh.homeRewardExit_ts) / 2
     maxCorrection = 0
@@ -1489,17 +1526,21 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
             sesh.btWellExitTimes_ts[sesh.homeWell] > ts))
         if len(nz) != 1:
             print(nz)
-            print(sesh.btWellEntryTimes_ts[sesh.homeWell], sesh.btWellExitTimes_ts[sesh.homeWell])
+            print(sesh.btWellEntryTimes_ts[sesh.homeWell],
+                  sesh.btWellExitTimes_ts[sesh.homeWell])
         assert len(nz) == 1
         nz = nz[0]
         # print(f"{nz = }")
         if len(nz) != 1:
             # print(f"{ nz=  }")
-            print(sesh.btWellEntryTimes_ts[sesh.homeWell], sesh.btWellExitTimes_ts[sesh.homeWell])
+            print(sesh.btWellEntryTimes_ts[sesh.homeWell],
+                  sesh.btWellExitTimes_ts[sesh.homeWell])
             print(ts)
             if len(sesh.btWellEntryTimes_ts[sesh.homeWell]) == 0:
-                t1 = np.searchsorted(sesh.btPos_ts, sesh.homeRewardEnter_ts[ti]) - 20
-                t2 = np.searchsorted(sesh.btPos_ts, sesh.homeRewardExit_ts[ti]) + 20
+                t1 = np.searchsorted(
+                    sesh.btPos_ts, sesh.homeRewardEnter_ts[ti]) - 20
+                t2 = np.searchsorted(
+                    sesh.btPos_ts, sesh.homeRewardExit_ts[ti]) + 20
                 # t3 = np.searchsorted(
                 #     sesh.btPos_ts, sesh.btWellEntryTimes_ts[sesh.homeWell][nearestEntryTimeIdx]) - 20
                 # t4 = np.searchsorted(
@@ -1512,7 +1553,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
                 # plt.show()
                 raise Exception("No home well visits found")
             # print(sesh.homeRewardEnter_ts[ti], sesh.homeRewardExit_ts[ti])
-            nearestEntryTimeIdx = np.argmin(abs(sesh.btWellEntryTimes_ts[sesh.homeWell] - ts))
+            nearestEntryTimeIdx = np.argmin(
+                abs(sesh.btWellEntryTimes_ts[sesh.homeWell] - ts))
             print("!!!!!! WARNING: CORRECTING HOME REWARD TIME OUTSIDE OF VISIT !!!!!!!")
             nz = [nearestEntryTimeIdx]
         assert len(nz) == 1
@@ -1539,7 +1581,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
 
     awayMiddle_ts = (sesh.awayRewardEnter_ts + sesh.awayRewardExit_ts) / 2
     for ti, (ts, aw) in enumerate(zip(awayMiddle_ts, sesh.visitedAwayWells)):
-        nz = np.nonzero((sesh.btWellEntryTimes_ts[aw] < ts) & (sesh.btWellExitTimes_ts[aw] > ts))
+        nz = np.nonzero((sesh.btWellEntryTimes_ts[aw] < ts) & (
+            sesh.btWellExitTimes_ts[aw] > ts))
         assert len(nz) == 1
         nz = nz[0]
         if len(nz) == 0:
@@ -1563,7 +1606,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
                 # plt.plot(sesh.btPosXs[idx1:idx2], sesh.btPosYs[idx1:idx2])
                 # plt.scatter(awayx, awayy, color='red')
                 # plt.show()
-                raise Exception("COuldn't match up with hand-marked visit with the detected visits")
+                raise Exception(
+                    "COuldn't match up with hand-marked visit with the detected visits")
         else:
             assert len(nz) == 1
             encompassingVisitIdx = nz[0]
@@ -1584,7 +1628,8 @@ def posCalcEntryExitTimes(sesh: BTSession) -> None:
             numCorrections += 1
             sesh.awayRewardExit_ts[ti] = sesh.btWellExitTimes_ts[aw][encompassingVisitIdx]
 
-    print(f"\tFixed {numCorrections} well find times, max correction was {maxCorrection} seconds")
+    print(
+        f"\tFixed {numCorrections} well find times, max correction was {maxCorrection} seconds")
 
     sesh.homeRewardEnter_posIdx = np.searchsorted(
         sesh.btPos_ts, sesh.homeRewardEnter_ts)
@@ -1698,10 +1743,13 @@ def posCalcCurvature(sesh: BTSession) -> None:
 
 def getExplorationCategories(ts, vel, nearestWells, importOptions, forcePauseIntervals=None) -> \
         Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
-    POS_FRAME_RATE = stats.mode(np.diff(ts), keepdims=True)[0] / float(TRODES_SAMPLING_RATE)
+    POS_FRAME_RATE = stats.mode(np.diff(ts), keepdims=True)[
+        0] / float(TRODES_SAMPLING_RATE)
     BOUT_VEL_SM_SIGMA = importOptions.BOUT_VEL_SM_SIGMA_SECS / POS_FRAME_RATE
-    MIN_PAUSE_TIME_FRAMES = int(importOptions.MIN_PAUSE_TIME_BETWEEN_BOUTS_SECS / POS_FRAME_RATE)
-    MIN_EXPLORE_TIME_FRAMES = int(importOptions.MIN_EXPLORE_TIME_SECS / POS_FRAME_RATE)
+    MIN_PAUSE_TIME_FRAMES = int(
+        importOptions.MIN_PAUSE_TIME_BETWEEN_BOUTS_SECS / POS_FRAME_RATE)
+    MIN_EXPLORE_TIME_FRAMES = int(
+        importOptions.MIN_EXPLORE_TIME_SECS / POS_FRAME_RATE)
 
     smoothVel = gaussian_filter1d(vel, BOUT_VEL_SM_SIGMA)
 
@@ -1709,7 +1757,8 @@ def getExplorationCategories(ts, vel, nearestWells, importOptions, forcePauseInt
     dilationFilter = np.ones((MIN_PAUSE_TIME_FRAMES), dtype=int)
     inPauseBout = ~ (signal.convolve(isExploreLocal.astype(int),
                      dilationFilter, mode='same').astype(bool))
-    isInPause = signal.convolve(inPauseBout.astype(int), dilationFilter, mode='same').astype(bool)
+    isInPause = signal.convolve(inPauseBout.astype(
+        int), dilationFilter, mode='same').astype(bool)
     isInExplore = np.logical_not(isInPause)
 
     if forcePauseIntervals is not None:
@@ -1745,7 +1794,8 @@ def getExplorationCategories(ts, vel, nearestWells, importOptions, forcePauseInt
     exploreBoutStarts = startExplores[keepBout]
     exploreBoutEnds = stopExplores[keepBout]
     ts = np.array(ts)
-    exploreBoutLensSecs = (ts[exploreBoutEnds] - ts[exploreBoutStarts]) / TRODES_SAMPLING_RATE
+    exploreBoutLensSecs = (ts[exploreBoutEnds] -
+                           ts[exploreBoutStarts]) / TRODES_SAMPLING_RATE
 
     # add a category at each behavior time point for easy reference later:
     boutCategory = np.zeros_like(ts)
@@ -1822,8 +1872,10 @@ def getExcursions(xs: ArrayLike, ys: ArrayLike, ts: ArrayLike) -> Tuple[ArrayLik
             print(ie)
             print(i, s)
             print(excursionStarts)
-            print(np.where(excursionStopCategory[s:] == BTSession.EXCURSION_STATE_ON_WALL)[0])
-            print(len(np.where(excursionStopCategory[s:] == BTSession.EXCURSION_STATE_ON_WALL)[0]))
+            print(
+                np.where(excursionStopCategory[s:] == BTSession.EXCURSION_STATE_ON_WALL)[0])
+            print(
+                len(np.where(excursionStopCategory[s:] == BTSession.EXCURSION_STATE_ON_WALL)[0]))
             raise ie
 
     # Now if two excursion starts have the same end, only keep the first one
@@ -1834,7 +1886,8 @@ def getExcursions(xs: ArrayLike, ys: ArrayLike, ts: ArrayLike) -> Tuple[ArrayLik
     # if excursionStopCategory[-1] == BTSession.EXCURSION_STATE_OFF_WALL:
     # excursionEnds = np.append(excursionEnds, len(excursionStopCategory))
     t = np.array(ts + [ts[-1]])
-    excursionLensSecs = (t[excursionEnds - 1] - t[excursionStarts]) / TRODES_SAMPLING_RATE
+    excursionLensSecs = (t[excursionEnds - 1] -
+                         t[excursionStarts]) / TRODES_SAMPLING_RATE
     excursionCategory = np.full_like(xs, BTSession.EXCURSION_STATE_ON_WALL)
     for s, e in zip(excursionStarts, excursionEnds):
         excursionCategory[s:e] = BTSession.EXCURSION_STATE_OFF_WALL
@@ -1845,7 +1898,8 @@ def getExcursions(xs: ArrayLike, ys: ArrayLike, ts: ArrayLike) -> Tuple[ArrayLik
 @TimeThisFunction
 def posCalcExcursions(sesh: BTSession) -> None:
     sesh.btExcursionCategory, sesh.btExcursionStart_posIdx, sesh.btExcursionEnd_posIdx, \
-        sesh.btExcursionLensSecs = getExcursions(sesh.btPosXs, sesh.btPosYs, sesh.btPos_ts)
+        sesh.btExcursionLensSecs = getExcursions(
+            sesh.btPosXs, sesh.btPosYs, sesh.btPos_ts)
 
     if sesh.probePerformed:
         sesh.probeExcursionCategory, sesh.probeExcursionStart_posIdx, sesh.probeExcursionEnd_posIdx, \
@@ -2058,7 +2112,8 @@ def extractAndSave(configName: str, importOptions: ImportOptions) -> BTData:
             outputFname = os.path.join(loadInfo.output_dir,
                                        loadInfo.out_filename + ".debug.dat")
         else:
-            outputFname = os.path.join(loadInfo.output_dir, loadInfo.out_filename)
+            outputFname = os.path.join(
+                loadInfo.output_dir, loadInfo.out_filename)
         print("Saving to file: {}".format(outputFname))
         dataObj.saveToFile(outputFname)
         print("Saved sessions:")

@@ -111,13 +111,6 @@ class ShuffleResult:
                                       axis=0) / np.count_nonzero(~np.isnan(self.shuffleDiffs), axis=0)
             pvals2 = np.count_nonzero(self.diff.T <= self.shuffleDiffs,
                                       axis=0) / np.count_nonzero(~np.isnan(self.shuffleDiffs), axis=0)
-            # oldpvals1 = np.count_nonzero(self.diff.T < self.shuffleDiffs,
-            #                              axis=0) / self.shuffleDiffs.shape[0]
-            # oldpvals2 = np.count_nonzero(self.diff.T <= self.shuffleDiffs,
-            #                              axis=0) / self.shuffleDiffs.shape[0]
-            # if np.any(np.isnan(self.shuffleDiffs)):
-            #     print("nans in shuffle diff: ", np.count_nonzero(np.isnan(self.shuffleDiffs),
-            #           axis=0) / self.shuffleDiffs.shape[0], oldpvals1, pvals1, sep="\t")
         return (pvals1 + pvals2) / 2
 
     def getFullInfoString(self, linePfx="") -> str:
@@ -247,7 +240,6 @@ class Shuffler:
                     elif s.shuffType == ShuffSpec.ShuffType.INTERACTION:
                         topText += f"Interaction: {s.value} ({s.categoryName})\n"
 
-                # topText = f"{r.specs[0].categoryName}: {r.specs[0].shuffType}\n"
                 direction = pval > 0.5
                 if direction:
                     pval = 1 - pval
@@ -255,13 +247,11 @@ class Shuffler:
                     topText += f"p={round(pval, 3)}\n{cat1} {'<' if direction else '>'} {cat2}"
                 else:
                     topText += f"p<{round(1/len(shufDiffs), 3)}\n{cat1} {'<' if direction else '>'} {cat2}"
-                # txtAx.add_artist(AnchoredText(topText, "upper center"))
                 # make this text fill up all of txtAx
                 txtAx.axis("off")
                 txtAx.text(0.5, 0, topText, horizontalalignment="center",
                            verticalalignment="bottom", transform=txtAx.transAxes)
 
-                # insetAx = shufAx.inset_axes([0.4, 0.15, 0.2, 0.1])
                 shufAx.hist(shufDiffs, bins=20, color="black")
                 shufAx.axvline(dataDiff, color="red")
                 shufAx.set_xlabel(f"{cat1} - {cat2}")
@@ -332,7 +322,6 @@ class Shuffler:
         shuffResults: List[Tuple[str, List[List[ShuffleResult]], str]] = []
         for plotName in tqdm(filesForEachPlot, desc="Running shuffles", total=len(filesForEachPlot)):
             # print("Running shuffles for {}".format(plotName))
-            # for plotName in filesForEachPlot:
             # Get the immediate shuffles. Should be the same for all files
             fname = filesForEachPlot[plotName][0]
             pickleFile = fname[:-3] + "_immediateShuffles.pkl"
@@ -353,9 +342,6 @@ class Shuffler:
             # persistentInfoNames = pd.read_hdf(filesForEachPlot[plotName][0], key="persistentInfoNames")
             measureName = os.path.dirname(
                 filesForEachPlot[plotName][0]).split(os.path.sep)[-2]
-
-            # print("Plot: {}, measure: {}".format(plotName, measureName))
-            # print(df.to_string())
 
             nu = df.nunique(axis=0)
             catsToShuffle = list(persistentCategoryNames)
@@ -404,38 +390,14 @@ class Shuffler:
                     for pi, pval in enumerate(s2.getPVals()):
                         if pval < significantThreshold or pval > 1 - significantThreshold:
                             if resultsFilter(plotName, s2, pval, measureName):
-                                # measurenameWithoutPrefix = "_".join(
-                                #     measureName.split("_")[1:])
                                 plotSuffix = plotName[len(measureName):]
-                                isCondShuf = plotSuffix == "" or plotSuffix.endswith(
-                                    "diff") or plotSuffix.endswith("cond") or plotSuffix.endswith("measureByCondition")
-                                isCtrlShuf = plotSuffix.endswith("cond") or (
-                                    "ctrl_" in plotSuffix and "diff" not in plotSuffix)
-                                isDiffShuf = plotSuffix.endswith("diff")
-                                isNextSeshDiffShuf = plotSuffix.endswith(
-                                    "nextsession_diff")
                                 significantResults.append(
                                     (plotName, str(s2), pval if pval < 0.5 else 1 - pval, pval < 0.5,
-                                        measureName, plotSuffix, isCondShuf, isCtrlShuf, isDiffShuf,
-                                        isNextSeshDiffShuf, pi))
-                                # filteredResults.append(
-                                #     (plotName, s2, pval if pval < 0.5 else 1 - pval,
-                                #         measureName))
-                    # pval = s2.getPVals().item()
-                    # if resultsFilter(plotName, s2, pval, measureName):
-                    #     filteredResults.append(
-                    #         (plotName, s2, pval if pval < 0.5 else 1 - pval,
-                    #             measureName))
+                                        measureName, plotSuffix, pi))
 
-        # sdf = pd.DataFrame([(pn, str(s.specs), pv, mn) for pn, s, pv, mn in filteredResults],
-        #                    columns=["plot", "shuffle", "pval", "measure"])
         sdf = pd.DataFrame(significantResults,
-                           columns=["plot", "shuffle", "pval", "direction", "measure", "plotSuffix", "isCondShuf",
-                                    "isCtrlShuf", "isDiffShuf", "isNextSeshDiffShuf", "pvalIndex"])
+                           columns=["plot", "shuffle", "pval", "direction", "measure", "plotSuffix", "pvalIndex"])
         sdf.sort_values(by="pval", inplace=True)
-        # print("immediateShufflesAcrossPersistentCategories")
-        # print(sdf.to_string(index=False))
-        # sdf.to_hdf(outputFileName, key="immediateShuffles")
         sdf.to_hdf(outputFileName, key="significantShuffles")
         print(sdf)
 
@@ -445,9 +407,6 @@ class Shuffler:
                                    columnsToShuffle: Optional[List[str]] = None) -> List[List[ShuffSpec]]:
         if columnsToShuffle is None:
             raise Exception("Not implemented. leaf is a list...")
-            columnsToShuffle = set(df.columns)
-            columnsToShuffle.remove(leaf.categoryName)
-            columnsToShuffle = list(columnsToShuffle)
 
         ret = [leaf]
         for col in columnsToShuffle:
@@ -613,26 +572,13 @@ class Shuffler:
                         for pi, pval in enumerate(s2.getPVals()):
                             if pval < significantThreshold or pval > 1 - significantThreshold:
                                 if shuffleResultsFilter(plotName, s2, pval, measureName):
-                                    # isCondShuf = any([s.categoryName == "condition" for s in s2.specs])
-
-                                    # measurenameWithoutPrefix = "_".join(
-                                    #     measureName.split("_")[1:])
                                     plotSuffix = plotName[len(measureName):]
-                                    isCondShuf = plotSuffix == "" or plotSuffix.endswith(
-                                        "diff") or plotSuffix.endswith("cond") or plotSuffix.endswith("measureByCondition")
-                                    isCtrlShuf = plotSuffix.endswith("cond") or (
-                                        "ctrl_" in plotSuffix and "diff" not in plotSuffix)
-                                    isDiffShuf = plotSuffix.endswith("diff")
-                                    isNextSeshDiffShuf = plotSuffix.endswith(
-                                        "nextsession_diff")
                                     significantResults.append(
                                         (plotName, str(s2), pval if pval < 0.5 else 1 - pval, pval < 0.5,
-                                         measureName, plotSuffix, isCondShuf, isCtrlShuf, isDiffShuf,
-                                         isNextSeshDiffShuf, pi))
+                                         measureName, plotSuffix, pi))
 
             sdf = pd.DataFrame(significantResults,
-                               columns=["plot", "shuffle", "pval", "direction", "measure", "plotSuffix", "isCondShuf",
-                                        "isCtrlShuf", "isDiffShuf", "isNextSeshDiffShuf", "pvalIndex"])
+                               columns=["plot", "shuffle", "pval", "direction", "measure", "plotSuffix", "pvalIndex"])
             sdf.sort_values(by="pval", inplace=True)
             sdf.to_hdf(outputFileName, key="significantShuffles")
             print(sdf)
@@ -659,59 +605,6 @@ class Shuffler:
             infoDf.to_hdf(outputFileName, key="corrInfo")
 
         return outputFileName
-
-    def summarizeShuffleResults(self, hdfFile: str) -> None:
-        df = pd.read_hdf(hdfFile, key="significantShuffles")
-        if df.empty:
-            return
-
-        # print("summarizeShuffleResults")
-        # print(df.to_string(index=False))
-
-        # dfWithoutShuffle = df.drop(columns=["shuffle"])
-        # dfWithoutShuffle = dfWithoutShuffle[dfWithoutShuffle["isDiffShuf"]]
-        # print(dfWithoutShuffle.to_string(index=False))
-
-        minNextSeshPvals = df[df["isNextSeshDiffShuf"]].sort_values(
-            by="pval", ascending=True).drop_duplicates(subset=["measure"])
-        # print("minNextSeshPvals")
-        # print(minNextSeshPvals.to_string(index=False))
-
-        minNonNextSeshPvals = df[df["isDiffShuf"] & ~df["isNextSeshDiffShuf"]].sort_values(
-            by="pval", ascending=True).drop_duplicates(subset=["measure"])
-        # print("minNonNextSeshPvals")
-        # print(minNonNextSeshPvals.to_string(index=False))
-
-        # print("summarizeShuffleResults")
-        # condCounts = df.groupby(["isCondShuf", "measure"])["pval"].count().xs(
-        #     True, level="isCondShuf").sort_values(ascending=False).rename("CondShufCount").reset_index()
-        # ctrlCounts = df.groupby(["isCtrlShuf", "measure"])["pval"].count().xs(
-        #     True, level="isCtrlShuf").sort_values(ascending=False).rename("CtrlShufCount").reset_index()
-        # df = pd.merge(condCounts, ctrlCounts, on="measure")
-        # df.sort_values(by="CondShufCount", inplace=True, ascending=False)
-        # print(df.to_string(index=False))
-
-        outputFileName = os.path.join(os.path.dirname(
-            hdfFile), datetime.now().strftime("%Y%m%d_%H%M%S_summary.txt"))
-        with open(outputFileName, "w") as f:
-            # f.write(df.to_string(index=False))
-            f.write("Non next session shuffle results")
-            f.write(minNonNextSeshPvals.to_string(index=False))
-            f.write("Next session shuffle results")
-            f.write(minNextSeshPvals.to_string(index=False))
-
-        outputFileNameCSV_nextSesh = os.path.join(os.path.dirname(
-            hdfFile), datetime.now().strftime("%Y%m%d_%H%M%S_summary_nextSesh.csv"))
-        minNextSeshPvals.to_csv(outputFileNameCSV_nextSesh, index=False)
-
-        outputFileNameCSV_nonNextSesh = os.path.join(os.path.dirname(
-            hdfFile), datetime.now().strftime("%Y%m%d_%H%M%S_summary_nonNextSesh.csv"))
-        minNonNextSeshPvals.to_csv(outputFileNameCSV_nonNextSesh, index=False)
-
-        acrossRatIdx = df["shuffle"].str.startswith("[ACR rat")
-        acrossRatDf = df[acrossRatIdx]
-        acrossRatDf.to_csv(os.path.join(os.path.dirname(
-            hdfFile), datetime.now().strftime("%Y%m%d_%H%M%S_summary_acrossRat.csv")), index=False)
 
     def _doShuffles(self, df: pd.DataFrame, specs: List[List[ShuffSpec]],
                     dataNames: List[str], numShuffles: List[int] = None) -> List[List[ShuffleResult]]:
@@ -923,22 +816,3 @@ class Shuffler:
                     ret.append(r)
 
             return ret
-
-
-if __name__ == "__main__":
-    randomSeed = int(time.perf_counter())
-    print(f"{ randomSeed = }")
-    s = Shuffler(np.random.default_rng(randomSeed), 100)
-    infoFileNames = []
-    # infoFileNames.append("B17_20230210_171338.txt")
-    dataDir = "/media/WDC8/figures/202302_labmeeting"
-    # infoFileNames.append("B17_20230213_103244.txt")
-    # infoFileNames.append("B17_20230213_133656.txt")
-    # infoFileNames.append("B17_20230210_171338.txt")  # "simple" measures like latency
-    # infoFileNames.append("B17_20230213_173328.txt")
-    # infoFileNames = [os.path.join(dataDir, f) for f in infoFileNames]
-    # outFile = s.runAllShuffles(infoFileNames, 100)
-    # print(outFile)
-    outFile = os.path.join(dataDir, "20230214_092451_significantShuffles.h5")
-    # outFile = "/media/WDC8/figures/202302_labmeeting/20230213_162512_significantShuffles.h5"
-    s.summarizeShuffleResults(outFile)

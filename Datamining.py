@@ -113,7 +113,6 @@ def checkIfMeasureAlreadyDone(pp: PlotManager,
         SessionMeasure: "SM",
         LocationMeasure: "LM",
         TrialMeasure: "TrM",
-        # WellMeasure: "WM"
     }
     pfx = classPrefixes[type(measure)]
     if corrMeasure is None:
@@ -185,7 +184,6 @@ def runDMFOnM(measureFunc: Callable[..., LocationMeasure | SessionMeasure | Time
                 SessionMeasure: "SM",
                 LocationMeasure: "LM",
                 TrialMeasure: "TrM",
-                # WellMeasure: "WM"
             }
             pfx = classPrefixes[type(meas)]
             savePoint = pp.getOutputSubDirSavepoint()
@@ -223,8 +221,6 @@ def runDMFOnM(measureFunc: Callable[..., LocationMeasure | SessionMeasure | Time
                             return
 
                         corrInfoFileNames.append(infoFileName)
-                        # corrInfoFileNames.append(
-                        #     checkIfMeasureAlreadyDone(pp, meas, corrMeasure=sm, verbose=verbose)[0])
 
                 if makeFigsInfoFileName != "None" and (len(corrInfoFileNames) == 0 or all([c != "None" for c in corrInfoFileNames])):
                     # We have done this one entirely already, skip running the measure func
@@ -330,7 +326,6 @@ def main():
             loadDebug = True
             animalName = animalName[:-1]
         animalInfo = getLoadInfo(animalName)
-        # dataFilename = os.path.join(dataDir, animalName, "processed_data", animalInfo.out_filename)
         dataFilename = os.path.join(
             animalInfo.output_dir, animalInfo.out_filename)
         if loadDebug:
@@ -345,10 +340,7 @@ def main():
         if ratName[-1] == "d":
             ratName = ratName[:-1]
         sessions: List[BTSession] = allSessionsByRat[ratName]
-        # nSessions = len(sessions)
         sessionsWithProbe = [sesh for sesh in sessions if sesh.probePerformed]
-        # numSessionsWithProbe = len(sessionsWithProbe)
-        # sessionsWithLog = [sesh for sesh in sessions if sesh.hasActivelinkLog]
 
         ctrlSessionsWithProbe = [sesh for sesh in sessions if (
             not sesh.isRippleInterruption) and sesh.probePerformed]
@@ -356,11 +348,6 @@ def main():
             sesh for sesh in sessions if sesh.isRippleInterruption and sesh.probePerformed]
         nCtrlWithProbe = len(ctrlSessionsWithProbe)
         nSWRWithProbe = len(swrSessionsWithProbe)
-
-        # ctrlSessions = [sesh for sesh in sessions if not sesh.isRippleInterruption]
-        # swrSessions = [sesh for sesh in sessions if sesh.isRippleInterruption]
-        # nCtrlSessions = len(ctrlSessions)
-        # nSWRSessions = len(swrSessions)
 
         print(f"{len(sessions)} sessions ({len(sessionsWithProbe)} "
               f"with probe: {nCtrlWithProbe} Ctrl, {nSWRWithProbe} SWR)")
@@ -375,11 +362,6 @@ def main():
         s = df.to_string()
         pp.writeToInfoFile(s)
         print(s)
-
-        # if hasattr(sessions[0], "probeFillTime"):
-        #     sessionsWithProbeFillPast90 = [s for s in sessionsWithProbe if s.probeFillTime > 90]
-        # else:
-        #     sessionsWithProbeFillPast90 = sessionsWithProbe
 
         pp.pushOutputSubDir(ratName)
         if len(animalNames) > 1:
@@ -449,7 +431,6 @@ def main():
         def isConvex(bp: BP):
             return bp.inclusionArray is None and bp.inclusionFlags is None and bp.moveThreshold is None
         allConvexBPs = [bp for bp in allConsideredBPs if isConvex(bp)]
-        # nonConvexBPs = [bp for bp in allConsideredBPs if not isConvex(bp)]
 
         basicParams = {
             "bp": allConsideredBPs,
@@ -483,10 +464,8 @@ def main():
             "func": [BTSession.pathOptimalityToPosition,
                         BTSession.pathLengthToPosition],
             "fillNanMode": [np.nan, 6 * np.sqrt(2), "max", "mean"],
-            # "radius": allConsideredRadii,
             "radius": [0.25, 0.5, 1],
             "reciprocal": [True, False],
-            # **basicParams
             "bp": allConsideredBPs,
             "smoothDist": [0.5, 1]
         }))
@@ -505,10 +484,8 @@ def main():
             "mode": ["first", "last", "firstvisit", "lastvisit", "mean", "meanIgnoreNoVisit"],
             "normalizeByDisplacement": [True, False],
             "fillNanMode": [np.nan, 6 * np.sqrt(2), "max", "mean"],
-            # "radius": allConsideredRadii,
             "radius": [0.25, 0.5, 1],
             "reciprocal": [True, False],
-            # **basicParams
             "bp": allConvexBPs,
             "smoothDist": [0.5, 1]
         }))
@@ -529,7 +506,6 @@ def main():
         allSpecs.append((makeLatencyMeasure, {
             "emptyVal": [np.nan, maxDuration, doubleDuration, "max", "mean"],
             "radius": allConsideredRadii,
-            # **basicParams
             "bp": allConvexBPs,
             "smoothDist": [0, 0.5, 1]
         }))
@@ -543,7 +519,6 @@ def main():
         allSpecs.append((makeFracExcursionsMeasure, {
             "normalization": ["session", "bp", "none"],
             "radius": allConsideredRadii,
-            # **basicParams
             "bp": allConvexBPs,
             "smoothDist": [0, 0.5, 1]
         }))
@@ -564,7 +539,6 @@ def main():
             "distanceWeight": np.linspace(-1, 1, 5),
             "normalize": [True, False],
             "onlyPositive": [True, False],
-            # **basicParams
             "bp": [
                 BP(probe=False, inclusionFlags="awayTrial"),
                 BP(probe=False, inclusionFlags=["awayTrial", "moving"]),
@@ -596,8 +570,6 @@ def main():
             "passRadius": np.linspace(0.5, 1.5, 3),
             "visitRadiusFactor": np.linspace(0.2, 0.4, 2),
             "passDenoiseFactor": [1.25],
-            # "passDenoiseFactor": np.linspace(1.25, 2, 3),
-            # **basicParams
             "bp": allConsideredBPs,
             "smoothDist": [0, 0.5]
         }))

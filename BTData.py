@@ -94,7 +94,6 @@ class BTData:
     def saveToFile(self, filename: str) -> int:
         saveDict = {
             "allSessions": self.allSessions,
-            # "allRestSessions": self.allRestSessions,
             "importOptions": self.importOptions
         }
         with open(filename, "w") as f:
@@ -108,7 +107,8 @@ class BTData:
         greater than this in hours, then prevSession is left as None. Otherwise, it is set to the previous session.
         """
         with open(filename, "r") as f:
-            loadDict = json.load(f, object_hook=self.arrayAndDataclassDecodeHook)
+            loadDict = json.load(
+                f, object_hook=self.arrayAndDataclassDecodeHook)
             self.allSessions = loadDict["allSessions"]
             prevStartTime = None
             for si, s in enumerate(self.allSessions):
@@ -123,12 +123,13 @@ class BTData:
                     if (startTime - prevStartTime).total_seconds() / 3600 < prevSessionCutoff:
                         s.prevSession = self.allSessions[si - 1]
                         self.allSessions[si - 1].nextSession = s
-                        s.secondsSincePrevSession = (startTime - prevStartTime).total_seconds()
-                        self.allSessions[si - 1].secondsUntilNextSession = s.secondsSincePrevSession
+                        s.secondsSincePrevSession = (
+                            startTime - prevStartTime).total_seconds()
+                        self.allSessions[si -
+                                         1].secondsUntilNextSession = s.secondsSincePrevSession
                     else:
                         s.prevSession = None
                 prevStartTime = startTime
-            # self.allRestSessions = loadDict["allRestSessions"]
             self.importOptions = loadDict["importOptions"]
         self.filename = filename
         return 0
@@ -136,6 +137,3 @@ class BTData:
     # can pass in optional filter function, otherwise returns all blocks
     def getSessions(self, predicate: Callable[[BTSession], bool] = lambda b: True) -> List[BTSession]:
         return list(filter(predicate, self.allSessions))
-
-    # def getRestSessions(self, predicate: Callable[[BTSession], bool] = lambda b: True) -> List[BTSession]:
-    #     return list(filter(predicate, self.allRestSessions))

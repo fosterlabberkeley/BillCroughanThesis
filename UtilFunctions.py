@@ -15,7 +15,6 @@ import time
 import subprocess
 from numpy.typing import ArrayLike
 from dataclasses import dataclass, field
-from enum import Enum, auto
 
 
 @dataclass
@@ -69,7 +68,8 @@ class ImportOptions:
     MIN_EXPLORE_TIME_SECS: float = 3.0
     MIN_EXPLORE_NUM_WELLS: int = 4
     #  constants for ballisticity
-    BALL_TIME_INTERVALS: List[int] = field(default_factory=lambda: list(range(1, 24)))
+    BALL_TIME_INTERVALS: List[int] = field(
+        default_factory=lambda: list(range(1, 24)))
     KNOT_H_CM: float = 8.0
 
     # ============
@@ -236,7 +236,8 @@ def readRawPositionData(data_filename):
                 if lineText != b'<end settings>\n' and lineText != b'<start settings>\n':
                     ss = str(lineText).split(":")
                     if len(ss) == 2:
-                        settings[str(ss[0])[2:].strip()] = str(ss[1])[0:-3].strip()
+                        settings[str(ss[0])[2:].strip()] = str(
+                            ss[1])[0:-3].strip()
                 # print(lineText)
                 iter += 1
                 if iter > max_iter:
@@ -286,13 +287,6 @@ def getWellPosCoordinates(wellName: int) -> Tuple[float, float]:
     return x, y
 
 
-# def detectStimArtifacts(lfp_data):
-#     deflection_metrics = signal.find_peaks(np.abs(np.diff(lfp_data,
-#                                                           prepend=lfp_data[0])), height=DEFLECTION_THRESHOLD_LO,
-#                                            distance=MIN_ARTIFACT_DISTANCE)
-
-#     return deflection_metrics[0]
-
 def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
                    stdPower=None, lfpDeflections=None, smoothStd=0.05,
                    showPlot=False, baselineLfpData: Optional[ArrayLike] = None):
@@ -300,7 +294,8 @@ def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
         raise ValueError("Unknown ripple power method")
 
     if (meanPower is None) != (stdPower is None):
-        raise ValueError("meanPower and stdPower must both be provided or None")
+        raise ValueError(
+            "meanPower and stdPower must both be provided or None")
 
     if method == "activelink":
         assert baselineLfpData is not None
@@ -343,7 +338,8 @@ def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
         sos = signal.butter(rippleFilterOrder, rippleFilterBand,
                             btype='band', fs=LFP_SAMPLING_RATE, output="sos")
         filteredSignal = signal.sosfiltfilt(sos, lfpData)
-        smoothedRipplePower = gaussian_filter(np.abs(filteredSignal), smoothStd_frames)
+        smoothedRipplePower = gaussian_filter(
+            np.abs(filteredSignal), smoothStd_frames)
         smoothedRipplePower[lfpMask] = np.nan
     elif method == "causal":
         rippleFilterOrder = 4
@@ -354,7 +350,8 @@ def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
         filterLenFactor = 4  # How many stds should the filter extend?
         halfSmoothingEnvelope = np.exp(-np.square(np.linspace(0, filterLenFactor / 2.0,
                                                               smoothStd_frames * filterLenFactor)))
-        halfSmoothingEnvelope = halfSmoothingEnvelope / np.sum(halfSmoothingEnvelope)
+        halfSmoothingEnvelope = halfSmoothingEnvelope / \
+            np.sum(halfSmoothingEnvelope)
         smoothingEnvelope = np.concatenate(
             (np.zeros_like(halfSmoothingEnvelope), halfSmoothingEnvelope), axis=0)
         smoothedRipplePower = signal.convolve(
@@ -386,7 +383,8 @@ def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
         # zi = signal.sosfilt_zi(sos)
         filteredSignal = signal.sosfilt(sos, lfpData)
         filteredBaselineSignal = signal.sosfilt(sos, baselineLfpData)
-        assert len(filteredSignal) == len(lfpData) == len(filteredBaselineSignal)
+        assert len(filteredSignal) == len(
+            lfpData) == len(filteredBaselineSignal)
 
         # activelink processes data once the number of datapoints is the filter order
         originalLength = len(filteredSignal)
@@ -428,96 +426,10 @@ def getRipplePower(lfpData: ArrayLike, method="standard", meanPower=None,
     return smoothedRipplePower, zRipplePower, meanPower, stdPower
 
 
-def getRipplePower_old(lfpData, causalSmoothing=False,
-                       lfpDeflections=None, meanPower=None, stdPower=None,
-                       showPlot=False, rippleFilterBand=(150, 250), rippleFilterOrder=4,
-                       skipTimePointsFoward=int(0.075 * LFP_SAMPLING_RATE),
-                       skipTimePointsBackward=int(0.02 * LFP_SAMPLING_RATE)):
-    """
-    Get ripple power in LFP
-    """
-    lfpData = lfpData.copy().astype(float)
-
-    if (meanPower is None) != (stdPower is None):
-        raise Exception("meanPower and stdPower must both be provided or None")
-
-    # After this preprocessing, clean up the data if needed.
-    lfpMask = np.zeros_like(lfpData)
-    if lfpDeflections is not None:
-        for artifactIdx in lfpDeflections:
-            if artifactIdx < 0 or artifactIdx > len(lfpData):
-                continue
-            cleanupStart = max(0, artifactIdx - skipTimePointsBackward)
-            cleanupFinish = min(len(lfpData), artifactIdx +
-                                skipTimePointsFoward)
-            # lfpData[cleanupStart:cleanupFinish] = np.nan
-            lfpMask[cleanupStart:cleanupFinish] = 1
-
-        # print("LFP mask letting {} of signal through".format(
-        #     1 - (np.count_nonzero(lfpMask) / len(lfpMask))))
-
-    nyqFreq = LFP_SAMPLING_RATE * 0.5
-    loCutoff = rippleFilterBand[0] / nyqFreq
-    hiCutoff = rippleFilterBand[1] / nyqFreq
-    pl, ph = signal.butter(rippleFilterOrder, [loCutoff, hiCutoff], btype='band')
-    if causalSmoothing:
-        rippleAmplitude = signal.lfilter(pl, ph, lfpData)
-    else:
-        rippleAmplitude = signal.filtfilt(pl, ph, lfpData)
-
-    rippleAmplitude[lfpMask == 1] = np.nan
-
-    # Smooth this data and get ripple power
-    # smoothingWindowLength = RIPPLE_POWER_SMOOTHING_WINDOW * LFP_SAMPLING_RATE
-    # smoothingWeights = np.ones(int(smoothingWindowLength))/smoothingWindowLength
-    # ripplePower = np.convolve(np.abs(rippleAmplitude), smoothingWeights, mode='same')
-
-    # Use a Gaussian kernel for filtering - Make the Kernel Causal bu keeping only one half of the values
-    smoothingWindowLength = 10
-    if causalSmoothing:
-        # In order to no have NaN values affect the filter output, create a copy with the artifacts
-        rippleAmplitudeCopy = rippleAmplitude.copy()
-
-        halfSmoothingSignal = \
-            np.exp(-np.square(np.linspace(0, -4 * smoothingWindowLength, 4 *
-                                          smoothingWindowLength)) / (
-                2 * smoothingWindowLength * smoothingWindowLength))
-        smoothingSignal = np.concatenate(
-            (np.zeros_like(halfSmoothingSignal), halfSmoothingSignal), axis=0)
-        ripplePower = signal.convolve(np.abs(rippleAmplitudeCopy),
-                                      smoothingSignal, mode='same') / np.sum(smoothingSignal)
-        ripplePower[np.isnan(rippleAmplitude)] = np.nan
-    else:
-        ripplePower = gaussian_filter(np.abs(rippleAmplitude), smoothingWindowLength)
-
-    # Get the mean/standard deviation for ripple power and adjust for those
-    if meanPower is None:
-        meanPower = np.nanmean(ripplePower)
-        stdPower = np.nanstd(ripplePower)
-    zpower = (ripplePower - meanPower) / stdPower
-
-    if showPlot:
-        lc = lfpData.copy()
-        lc = lc / np.nanmax(np.abs(lc)) * 10
-        rc = np.array([min(10, p) for p in zpower])
-        ts = np.linspace(0, len(lc) / 1500, len(lc))
-        plt.plot(ts, rc, c="orange", zorder=0)
-        plt.plot(ts, lc, c="blue", zorder=1)
-        # plt.plot(np.diff(lc), c="red")
-        # plt.plot([0, len(lc)], [3, 3], color="red", zorder=-1)
-        if lfpDeflections is not None:
-            plt.scatter(lfpDeflections / 1500, [0] * len(lfpDeflections), zorder=2, c="red")
-
-        plt.show()
-
-    return ripplePower, zpower, meanPower, stdPower
-
-
 def detectRipples(ripplePower, tsFunc=lambda lfpIdx: None, minHeight=3.0, minLen=0.05, maxLen=0.3, edgeThresh=0.0) -> List[Ripple]:
     pks, _ = signal.find_peaks(ripplePower, height=minHeight)
 
     ret = []
-
     i = 0
     while i < len(pks):
         pkidx = pks[i]
@@ -557,57 +469,6 @@ def detectRipples(ripplePower, tsFunc=lambda lfpIdx: None, minHeight=3.0, minLen
             i += 1
 
     return ret
-
-
-def detectRipples_old(ripplePower, minHeight=3.0, minLen=0.05, maxLen=0.3, edgeThresh=0.0):
-    pks, _ = signal.find_peaks(ripplePower, height=minHeight)
-
-    ripStartIdxs = []
-    ripLens = []
-    ripPeakIdxs = []
-    ripPeakAmps = []
-    ripCrossThreshIdx = []
-
-    i = 0
-    while i < len(pks):
-        pkidx = pks[i]
-        ii = pkidx
-        while ii >= 0 and ripplePower[ii] > edgeThresh:
-            ii -= 1
-        ii += 1
-        ripStart = ii
-
-        length = 0
-        pkAmp = 0
-        pkAmpI = 0
-        crossI = 0
-        crossed = False
-        while ii < len(ripplePower) and ripplePower[ii] > edgeThresh:
-            if ripplePower[ii] > pkAmp:
-                pkAmp = ripplePower[ii]
-                pkAmpI = ii
-
-            if not crossed and ripplePower[ii] > minHeight:
-                crossed = True
-                crossI = ii
-
-            ii += 1
-            length += 1
-
-        assert crossed
-
-        lensec = float(length) / LFP_SAMPLING_RATE
-        if lensec >= minLen and lensec <= maxLen:
-            ripStartIdxs.append(ripStart)
-            ripLens.append(length)
-            ripPeakAmps.append(pkAmp)
-            ripPeakIdxs.append(pkAmpI)
-            ripCrossThreshIdx.append(crossI)
-
-        while i < len(pks) and pks[i] < ii:
-            i += 1
-
-    return ripStartIdxs, ripLens, ripPeakIdxs, ripPeakAmps, ripCrossThreshIdx
 
 
 # 2 3
@@ -822,7 +683,8 @@ def getLoadInfo(config: str) -> LoadInfo:
         # behavior though if I wanted to
         excluded_sessions += ["20220621_2"]
         # Wasn't actually detecting ripples during these
-        excluded_sessions += ["20221102_1", "20221102_2", "20221103_1", "20221103_2", "20221105_1"]
+        excluded_sessions += ["20221102_1", "20221102_2",
+                              "20221103_1", "20221103_2", "20221105_1"]
 
         return LoadInfo(configName=config, animalName="B18",
                         X_START=100, X_FINISH=1050, Y_START=20, Y_FINISH=900, excludeBoxes=[(0, 0, 130, 60)],
@@ -854,10 +716,12 @@ def getUSBVideoFile(seshName, possibleDirectories, seshIdx=None, useSeshIdxDirec
             # print("\tusing date string directly with no dashes")
             usbDateStr = seshDate
         else:
-            usbDateStr = "-".join([seshDate[0:4], seshDate[4:6], seshDate[6:8]])
+            usbDateStr = "-".join([seshDate[0:4],
+                                  seshDate[4:6], seshDate[6:8]])
         possibleUSBVids = []
         for pd in possibleDirectories:
-            directName = os.path.join(pd, usbDateStr + "_" + str(seshIdx + 1) + ".mkv")
+            directName = os.path.join(
+                pd, usbDateStr + "_" + str(seshIdx + 1) + ".mkv")
             if os.path.exists(directName):
                 return directName
 
@@ -955,7 +819,8 @@ def getActivelinkLogFile(seshName, possibleDirectories):
         fname = os.path.basename(uv)
         timeStr = fname[-10:-4]
         # print(fname)
-        timeVals = [float(timeStr[0:2]), float(timeStr[2:4]), float(timeStr[4:6])]
+        timeVals = [float(timeStr[0:2]), float(
+            timeStr[2:4]), float(timeStr[4:6])]
         # print(timeVals)
         logTime = timeVals[0] * 3600 + timeVals[1] * 60 + timeVals[0]
 

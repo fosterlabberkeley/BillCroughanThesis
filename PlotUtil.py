@@ -98,9 +98,12 @@ class PlotManager:
         self.outputSubDirStack: List[str] = []
         if outputDir is None:
             outputDir = os.curdir
-        # This is an optional path to go between /media/WDCX/ and the rest of the output
+
+        # This is an optional path to go between /media/WDCX/ and the rest of the output. Note that it's a hack
+        # to deal with issues with folders being too big. It's used in DataMining.py so I'll leave it in here, but
+        # in general it's not a good idea to use it.
         self.outputDriveDir = ""
-        # I know it's a bad way to organize it but I can't have folders that are too big apparently so here we go...
+
         self.setOutputDir(outputDir)
         self.createdPlots = set()
         self.savedFigsByName: Dict[str, List[tuple[str, str]]] = {}
@@ -333,11 +336,8 @@ class PlotManager:
 
                             # Now create an inset axis in self.plotContext.ax in the bottom middle that shows the
                             # histogram of the shuffled differences and a red line at the data difference
-                            # Make the histogram sideways so it fits better
                             insetAx = self.plotContext.ax.inset_axes(
                                 [0.4, 0.15, 0.2, 0.1])
-                            # insetAx.hist(shufDiffs, bins=20,
-                            #              color="black", orientation="horizontal")
                             insetAx.hist(shufDiffs, bins=20, color="black")
                             insetAx.axvline(dataDiff, color="red")
                             insetAx.set_xlabel(f"{cat1} - {cat2}")
@@ -346,20 +346,9 @@ class PlotManager:
                             # turn off x ticks and tick labels
                             insetAx.set_xticks([])
                             insetAx.set_xticklabels([])
-                            # # Add y ticks as the y axis limits to show the range of values
-                            # insetAx.set_yticks(insetAx.get_ylim())
-                            # insetAx.set_yticklabels(
-                            #     [round(x, 2) for x in insetAx.get_ylim()])
-                            # insetAx.spines["top"].set_visible(False)
-                            # insetAx.spines["right"].set_visible(False)
-                            # insetAx.spines["bottom"].set_visible(False)
-                            # insetAx.spines["left"].set_visible(False)
-                            # insetAx.tick_params(
-                            #     axis="both", which="both", length=0)
 
                     else:
                         # Multiple shuffles, make a new figure
-                        # plt.figure(2)
                         flatRes = [r for rr in immediateRes for r in rr]
                         additionalFig, axs = plt.subplots(2, len(flatRes))
                         additionalFig.set_figheight(3)
@@ -397,7 +386,6 @@ class PlotManager:
                                     elif s.shuffType == ShuffSpec.ShuffType.INTERACTION:
                                         topText += f"Interaction: {s.value} ({s.categoryName})\n"
 
-                                # topText = f"{r.specs[0].categoryName}: {r.specs[0].shuffType}\n"
                                 direction = pval > 0.5
                                 if direction:
                                     pval = 1 - pval
@@ -405,20 +393,16 @@ class PlotManager:
                                     topText += f"p={round(pval, 3)}\n{cat1} {'<' if direction else '>'} {cat2}"
                                 else:
                                     topText += f"p<{round(1/numShuffles[0], 3)}\n{cat1} {'<' if direction else '>'} {cat2}"
-                                # txtAx.add_artist(AnchoredText(topText, "upper center"))
                                 # make this text fill up all of txtAx
                                 txtAx.axis("off")
                                 txtAx.text(0.5, 0.5, topText, horizontalalignment="center",
                                            verticalalignment="center", transform=txtAx.transAxes)
 
-                                # insetAx = ax.inset_axes([0.4, 0.15, 0.2, 0.1])
                                 ax.hist(shufDiffs, bins=20, color="black")
                                 ax.axvline(dataDiff, color="red")
                                 ax.set_xlabel(f"{cat1} - {cat2}")
                                 # turn off y axis
                                 ax.get_yaxis().set_visible(False)
-
-                        # plt.show()
 
                         plt.figure(self.fig)
                 elif len(self.plotContext.yvals) > 1 and shuffleValid:
@@ -432,7 +416,6 @@ class PlotManager:
                     xvals = np.array(xvals)
                     pvals = immediateRes[0][0].getPVals()
                     pvals = np.array([r if r < 0.5 else 1 - r for r in pvals])
-                    # pvals = np.array([r.getPVals().item() for r in immediateRes[0]])
                     pValSig = pvals < self.plotContext.immediateShufflePvalThreshold
                     # Now add an aterisk to self.plotContext.ax 95% up the y axis where the pval is significant
                     ymin, ymax = self.plotContext.ax.get_ylim()
@@ -773,13 +756,11 @@ class PlotManager:
                                                        resultsFilter: Callable[[str, ShuffleResult, float], bool] = notNanPvalFilter) -> None:
         outFile = self.shuffler.runImmediateShufflesAcrossPersistentCategories(
             [self.infoFileFullName], numShuffles, significantThreshold, resultsFilter, makePlots=True)
-        self.shuffler.summarizeShuffleResults(outFile)
 
     def runShuffles(self, numShuffles=100, significantThreshold: Optional[float] = 0.15,
                     resultsFilter: Callable[[str, ShuffleResult, float], bool] = notNanPvalFilter) -> None:
         outFile = self.shuffler.runAllShuffles([self.infoFileFullName], numShuffles,
                                                significantThreshold, resultsFilter)
-        self.shuffler.summarizeShuffleResults(outFile)
 
 
 def setupBehaviorTracePlot(axs, sesh, showWells: str = "HAO", wellZOrder=2, outlineColors=-1,
@@ -986,8 +967,6 @@ def violinPlot(ax: Axes, yvals: pd.Series | ArrayLike, categories: pd.Series | A
             swarmPallete = sns.color_palette("coolwarm", n_colors=nColors)
 
     # Same sorting here as in perseveration plot function so colors are always the same
-    # sortList = ["{}__{}__{}".format(x, y, xi)
-    #             for xi, (x, y) in enumerate(zip(sortingCategories, sortingCategories2))]
     sortList = [(x, y, xi) for xi, (x, y) in enumerate(
         zip(sortingCategories, sortingCategories2))]
     categories = [x for _, x in sorted(zip(sortList, categories))]
@@ -1018,7 +997,6 @@ def violinPlot(ax: Axes, yvals: pd.Series | ArrayLike, categories: pd.Series | A
                 palette="colorblind", n_colors=len(set(categories)))
     pal = sns.color_palette(palette=categoryColors)
     sx = np.array(s[axesNamesNoSpaces[2]])
-    # sy = np.array(s[axesNamesNoSpaces[1]]).astype(float)
     sh = np.array(s[axesNamesNoSpaces[0]])
     # if either is string, convert the other to string
     if isinstance(sx[0], str) or isinstance(sh[0], str):
@@ -1031,11 +1009,9 @@ def violinPlot(ax: Axes, yvals: pd.Series | ArrayLike, categories: pd.Series | A
                       for x, y in product(categoryOrder, category2Order)]
     swarmxValue = np.array([swarmxSortList.index(v) for v in swarmCategories])
 
-    # p1 = sns.violinplot(ax=ax, hue=sh,
-    #                     y=sy, x=swarmx, data=s, palette=pal, linewidth=0.2, cut=0, zorder=1)
-    # sns.stripplot(ax=ax, x=swarmx, y=sy, hue=dotColors, data=s,
-    #               zorder=3, dodge=False, palette=swarmPallete)
-    p1 = sns.violinplot(ax=ax, hue=categories,
+    hue = categories if not isinstance(categories[0], (int, float, np.integer, np.float_)) else [
+        str(c) for c in categories]
+    p1 = sns.violinplot(ax=ax, hue=hue,
                         y=yvals, x=swarmx, data=s, palette=pal, linewidth=0.2, cut=0, zorder=1)
     sns.stripplot(ax=ax, x=swarmxValue, y=yvals, hue="dotcoloraxisname", data=s,
                   zorder=3, dodge=False, palette=swarmPallete, linewidth=1)
@@ -1060,6 +1036,4 @@ def violinPlot(ax: Axes, yvals: pd.Series | ArrayLike, categories: pd.Series | A
 
 def blankPlot(ax):
     ax.cla()
-    # ax.tick_params(axis="both", which="both", label1On=False,
-    #                label2On=False, tick1On=False, tick2On=False)
     ax.axis("off")
